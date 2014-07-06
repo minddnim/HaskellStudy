@@ -23,8 +23,8 @@ main = do
 
 --key入力で回転角度、回転速度を操作する
 keyboardProc :: IORef GLdouble -> Key -> KeyState -> Modifiers -> Position -> IO()
-keyboardProc dir k s _ _ | k == Char 'r' = modifyIORef dir (\x -> -abs(x))
-                         | k == Char 'l' = modifyIORef dir (\x -> abs(x))
+keyboardProc dir k s _ _ | k == Char 'r' = modifyIORef dir (\x -> -abs x)
+                         | k == Char 'l' = modifyIORef dir (\x -> abs x)
                          | k == Char 'u' = modifyIORef dir (+0.1)
                          | k == Char 'd' = modifyIORef dir (+(-0.1))
                          | k == Char 'q' = exitWith ExitSuccess
