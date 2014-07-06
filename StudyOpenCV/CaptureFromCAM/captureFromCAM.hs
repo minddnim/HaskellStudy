@@ -4,6 +4,6 @@ import CV.HighGUI
 
 main :: IO()
 main = do
-  Just srcCam <- captureFromCam 2
+  Just srcCam <- captureFromCam 1
   Just frame <- getFrame srcCam
   display frame
