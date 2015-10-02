@@ -112,6 +112,11 @@ renderScene texInfo projInfoIORef = do
   renderProjection projInfoIORef
   renderModel texInfo
 
+motion :: MotionCallback
+motion (Position x y) = return ()
+
+
+
 mouse :: IORef ProjectionInfo -> MouseCallback
 mouse projInfoIORef b st (Position x y) = do
   projInfo <- readIORef projInfoIORef
@@ -134,8 +139,7 @@ clearMyColor :: Color4 GLfloat
 clearMyColor = Color4 0.0 0.0 0.0 1.0
 
 myInit :: IO()
-myInit = do
-  clearColor $= clearMyColor
+myInit = clearColor $= clearMyColor
 
 main :: IO ()
 main = do
@@ -150,5 +154,6 @@ main = do
   reshapeCallback $= Just (resize projInfo)
   displayCallback $= (renderScene texInfo projInfo)
   mouseCallback $= Just (mouse projInfo)
+  motionCallback $= Just motion
   myInit
   mainLoop
