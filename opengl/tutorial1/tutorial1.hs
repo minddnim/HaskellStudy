@@ -4,6 +4,11 @@ import Control.Monad
 import qualified Data.Vector as V
 import Text.Printf
 
+data Pos2D = Pos2D {
+  _px :: GLdouble
+, _py :: GLdouble
+}
+
 data Pos3D = Pos3D {
   _px :: GLdouble
 , _py :: GLdouble
@@ -26,9 +31,31 @@ data FaceInfo = FaceInfo {
 , _vIdxs :: V.Vector Int
 }
 
+data ImgFileInfo = ImgFileInfo {
+  _imgIdx :: Int
+, _imgFileName :: String
+}
+
+data ImgInfo = ImgInfo {
+  _imgNum :: Int
+, _imgFileList :: V.Vector ImgFileInfo
+}
+
+data TextureRegionInfo = TextureRegionInfo {
+  _imgNo :: Int
+, _v2D :: Pos2D
+, _v3DIdx :: Int
+}
+
+data TextureRegionInfos = TextureRegionInfos {
+  _textureRegionInfos :: V.Vector TextureRegionInfo
+}
+
 data TextureInfo = TextureInfo {
   _vInfos :: V.Vector VerInfo
 , _fInfos :: V.Vector FaceInfo
+, _iInfos :: V.Vector ImgInfo
+,_trInfos :: V.Vector TextureRegionInfos
 }
 
 data ProjectionInfo = ProjectionInfo {
@@ -53,10 +80,15 @@ readPlyFile filePath = do
       (elemFaceNumStr:remStrsTmp2) = drop 6 remStrsTmp1
       faceNum = read ((last . words) elemFaceNumStr) :: Int
       (verInfoStr, contStrTmp1) = splitAt verNum (drop 2 remStrsTmp2)
-      (faceInfoStr, contStrTmp2) = splitAt faceNum contStrTmp1
+      (faceInfoStr, imgNumStr:contStrTmp2) = splitAt faceNum contStrTmp1
+      imgNum = read imgNumStr :: Int
+      (imgInfoStr, contStrTmp3) = splitAt imgNum contStrTmp2
       verInfos = V.fromList $ map getVertexInfo verInfoStr
       faceInfos = V.fromList $ map getFaceInfo faceInfoStr
-  return (TextureInfo verInfos faceInfos)
+      imgFileInfos = V.fromList $ map getImgFileInfo imgInfoStr
+      imgInfo = ImgInfo imgNum imgFileInfos
+      texRegInfos = getTextureRegionInfosVector contStrTmp3
+  return (TextureInfo verInfos faceInfos texRegInfos)
 
 getVertexInfo :: String -> VerInfo
 getVertexInfo str = VerInfo ver clr
@@ -67,6 +99,28 @@ getVertexInfo str = VerInfo ver clr
 getFaceInfo :: String -> FaceInfo
 getFaceInfo str = FaceInfo num (V.fromList idxs)
   where (num:idxs) = (map read . words) str
+
+getImgFileInfo :: String -> ImgInfo
+getImgFileInfo str = ImgFileInfo idx fileName
+  where [idxStr, fileName] = words str
+        idx = read idxStr
+
+getTextureRegionInfosVector :: [String] -> V.Vector TextureRegionInfos
+getTextureRegionInfosVector strs = V.fromList $ map getTextureRegionInfos textureRegionINfosStrs
+  where textureRegionInfosStrs = divStr strs []
+
+divStr :: [String] -> [[String]] -> [[String]]
+divStr [] ret = ret
+divStr strs ret = divStr remStr (element:ret)
+  where (element, remStr) = splitAt 3 contStrTmp2
+
+getTextureRegionInfos :: [String] -> TextureRegionInfos
+getTextureRegionInfos strs = V.fromList $ map getTextureRegionInfo strs
+
+getTextureRegionInfo :: String -> TextureRegionInfo
+getTextureRegionInfo str = TextureRegionInfo imgIdx (Pos2D px py) pos3DIdx
+  where [imgIdx, px, py, pos3DIdx] = (map read . words) str
+
 
 postDisplay :: IO()
 postDisplay = do
