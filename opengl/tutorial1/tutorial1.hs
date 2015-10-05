@@ -5,14 +5,14 @@ import qualified Data.Vector as V
 import Text.Printf
 
 data Pos2D = Pos2D {
-  _px :: GLdouble
-, _py :: GLdouble
+  _px2D :: GLdouble
+, _py2D :: GLdouble
 }
 
 data Pos3D = Pos3D {
-  _px :: GLdouble
-, _py :: GLdouble
-, _pz :: GLdouble
+  _px3D :: GLdouble
+, _py3D :: GLdouble
+, _pz3D :: GLdouble
 }
 
 data ColorRGB = ColorRGB {
@@ -54,8 +54,8 @@ data TextureRegionInfos = TextureRegionInfos {
 data TextureInfo = TextureInfo {
   _vInfos :: V.Vector VerInfo
 , _fInfos :: V.Vector FaceInfo
-, _iInfos :: V.Vector ImgInfo
-,_trInfos :: V.Vector TextureRegionInfos
+, _iInfo :: ImgInfo
+, _trInfos :: V.Vector TextureRegionInfos
 }
 
 data ProjectionInfo = ProjectionInfo {
@@ -88,7 +88,7 @@ readPlyFile filePath = do
       imgFileInfos = V.fromList $ map getImgFileInfo imgInfoStr
       imgInfo = ImgInfo imgNum imgFileInfos
       texRegInfos = getTextureRegionInfosVector contStrTmp3
-  return (TextureInfo verInfos faceInfos texRegInfos)
+  return (TextureInfo verInfos faceInfos imgInfo texRegInfos)
 
 getVertexInfo :: String -> VerInfo
 getVertexInfo str = VerInfo ver clr
@@ -100,26 +100,30 @@ getFaceInfo :: String -> FaceInfo
 getFaceInfo str = FaceInfo num (V.fromList idxs)
   where (num:idxs) = (map read . words) str
 
-getImgFileInfo :: String -> ImgInfo
+getImgFileInfo :: String -> ImgFileInfo
 getImgFileInfo str = ImgFileInfo idx fileName
   where [idxStr, fileName] = words str
         idx = read idxStr
 
 getTextureRegionInfosVector :: [String] -> V.Vector TextureRegionInfos
-getTextureRegionInfosVector strs = V.fromList $ map getTextureRegionInfos textureRegionINfosStrs
+getTextureRegionInfosVector strs = V.fromList $ map getTextureRegionInfos textureRegionInfosStrs
   where textureRegionInfosStrs = divStr strs []
 
 divStr :: [String] -> [[String]] -> [[String]]
 divStr [] ret = ret
 divStr strs ret = divStr remStr (element:ret)
-  where (element, remStr) = splitAt 3 contStrTmp2
+  where (element, remStr) = splitAt 3 strs
 
 getTextureRegionInfos :: [String] -> TextureRegionInfos
-getTextureRegionInfos strs = V.fromList $ map getTextureRegionInfo strs
+getTextureRegionInfos strs = TextureRegionInfos $ V.fromList $ map getTextureRegionInfo strs
 
 getTextureRegionInfo :: String -> TextureRegionInfo
 getTextureRegionInfo str = TextureRegionInfo imgIdx (Pos2D px py) pos3DIdx
-  where [imgIdx, px, py, pos3DIdx] = (map read . words) str
+  where [imgIdxStr, pxStr, pyStr, pos3DIdxStr] = words str
+        imgIdx = read imgIdxStr :: Int
+        px = read pxStr :: GLdouble
+        py = read pyStr :: GLdouble
+        pos3DIdx = read pos3DIdxStr :: Int
 
 
 postDisplay :: IO()
@@ -149,7 +153,7 @@ renderProjection projInfoIORef = do
   scale zoom zoom zoom
 
 renderModel :: TextureInfo -> DisplayCallback
-renderModel (TextureInfo vInfo fInfo) = do
+renderModel (TextureInfo vInfo fInfo iInfo trInfos) = do
   clear [ColorBuffer, DepthBuffer, StencilBuffer]
   forM_ [0..(V.length fInfo - 1)] $ \i -> do
     renderPrimitive Polygon $ do
